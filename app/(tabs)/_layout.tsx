@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Users, ClipboardList, Package, Calendar, User } from 'lucide-react-native';
+import { Home, Users, ClipboardList, CheckSquare, Calendar, User } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -44,10 +44,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="services"
+        name="tasks"
         options={{
-          title: 'Servicios',
-          tabBarIcon: ({ size, color }) => <Package size={size} color={color} />,
+          title: 'Tareas',
+          tabBarIcon: ({ size, color }) => <CheckSquare size={size} color={color} />,
         }}
       />
       <Tabs.Screen

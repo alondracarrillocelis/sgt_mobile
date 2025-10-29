@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { ClipboardList, CheckCircle, Clock, AlertCircle } from 'lucide-react-native';
+import { ClipboardList, CheckCircle, Clock, AlertCircle, CheckSquare } from 'lucide-react-native';
 // import { useAuth } from '@/contexts/AuthContext';
 
 export default function DashboardScreen() {
@@ -13,6 +13,7 @@ export default function DashboardScreen() {
     total: 0,
   });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -48,7 +49,27 @@ export default function DashboardScreen() {
       },
     ];
 
+    const dummyTasks = [
+      {
+        id: 1,
+        title: 'Seguimiento post-instalación',
+        client_name: 'Carlos López',
+        date_: '2025-10-20',
+        start_time: '10:00:00',
+        status_: 'pendiente',
+      },
+      {
+        id: 2,
+        title: 'Cotización de ampliación de red',
+        client_name: 'María Gómez',
+        date_: '2025-10-21',
+        start_time: '14:00:00',
+        status_: 'pendiente',
+      },
+    ];
+
     setRecentOrders(dummyOrders);
+    setPendingTasks(dummyTasks);
 
     const pending = dummyOrders.filter(o => o.status === 'pending').length;
     const inProgress = dummyOrders.filter(o => o.status === 'in_progress').length;
@@ -159,6 +180,34 @@ export default function DashboardScreen() {
                   month: 'long',
                   year: 'numeric',
                 })}
+              </Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Tareas Pendientes</Text>
+
+        {pendingTasks.length === 0 ? (
+          <View style={styles.emptyState}>
+            <CheckSquare size={48} color="#CCCCCC" />
+            <Text style={styles.emptyText}>No hay tareas pendientes</Text>
+          </View>
+        ) : (
+          pendingTasks.map((task) => (
+            <TouchableOpacity key={task.id} style={styles.taskCard}>
+              <View style={styles.taskHeader}>
+                <CheckSquare size={20} color="#0066CC" />
+                <Text style={styles.taskTitle}>{task.title}</Text>
+              </View>
+              <Text style={styles.taskClient}>Cliente: {task.client_name}</Text>
+              <Text style={styles.taskDate}>
+                {new Date(task.date_).toLocaleDateString('es-MX', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })} • {task.start_time.slice(0, 5)}
               </Text>
             </TouchableOpacity>
           ))
@@ -277,6 +326,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999999',
     marginTop: 16,
+  },
+  taskCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderLeftWidth: 3,
+    borderLeftColor: '#0066CC',
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
+    flex: 1,
+  },
+  taskClient: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  taskDate: {
+    fontSize: 12,
+    color: '#999999',
   },
 });
 
