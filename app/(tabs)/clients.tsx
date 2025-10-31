@@ -6,29 +6,22 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
-  Modal,
-  Alert,
   RefreshControl,
+  Modal,
+  ScrollView,
 } from 'react-native';
-// import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Search, Phone, Mail, MapPin, X } from 'lucide-react-native';
+import { Search, User, Phone, Mail, MapPin, X } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 export default function ClientsScreen() {
-  // const { user } = useAuth(); // 🔸 No necesitamos autenticación
+  const router = useRouter();
   const [clients, setClients] = useState<any[]>([]);
   const [filteredClients, setFilteredClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: '',
-    phone: '',
-    email: '',
-    address: '',
-    notes: '',
-  });
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
-  // 🔹 Dummy data para simular clientes
   const dummyClients = [
     {
       id: '1',
@@ -67,11 +60,8 @@ export default function ClientsScreen() {
     filterClients();
   }, [searchQuery, clients]);
 
-
   const loadClients = async () => {
-
-
-    await new Promise((resolve) => setTimeout(resolve, 400)); // pequeña simulación de delay
+    await new Promise(resolve => setTimeout(resolve, 400));
     setClients(dummyClients);
   };
 
@@ -80,10 +70,9 @@ export default function ClientsScreen() {
       setFilteredClients(clients);
       return;
     }
-
     const query = searchQuery.toLowerCase();
     const filtered = clients.filter(
-      (client) =>
+      client =>
         client.full_name.toLowerCase().includes(query) ||
         client.phone.includes(query) ||
         client.address.toLowerCase().includes(query)
@@ -97,69 +86,39 @@ export default function ClientsScreen() {
     setRefreshing(false);
   };
 
-  const handleAddClient = async () => {
-    if (!formData.full_name || !formData.phone || !formData.address) {
-      Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
-      return;
-    }
-
-
-
-    // 🔹 Simula agregar cliente localmente
-    const newClient = {
-      id: (clients.length + 1).toString(),
-      ...formData,
-      created_at: new Date().toISOString(),
-    };
-    setClients([newClient, ...clients]);
-    setModalVisible(false);
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setFormData({
-      full_name: '',
-      phone: '',
-      email: '',
-      address: '',
-      notes: '',
-    });
+  const openClientModal = (client: any) => {
+    setSelectedClient(client);
+    setModalVisible(true);
   };
 
   const renderClient = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.clientCard}>
-      <Text style={styles.clientName}>{item.full_name}</Text>
-
+    <TouchableOpacity style={styles.clientCard} onPress={() => openClientModal(item)}>
+      <View style={styles.iconCircle}>
+        <User color="#fff" size={28} />
+      </View>
       <View style={styles.clientInfo}>
-        <Phone size={16} color="#666666" />
+        <Text style={styles.clientName}>{item.full_name}</Text>
         <Text style={styles.clientText}>{item.phone}</Text>
       </View>
-
-      {item.email && (
-        <View style={styles.clientInfo}>
-          <Mail size={16} color="#666666" />
-          <Text style={styles.clientText}>{item.email}</Text>
-        </View>
-      )}
-
-      <View style={styles.clientInfo}>
-        <MapPin size={16} color="#666666" />
-        <Text style={styles.clientText}>{item.address}</Text>
-      </View>
-
-      {item.notes && <Text style={styles.clientNotes}>{item.notes}</Text>}
+      <Text style={styles.clientArrow}>›</Text>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
+      <View style={styles.backgroundShapeBlue} />
+      <View style={styles.backgroundShapeYellow} />
+
       <View style={styles.header}>
-        <Text style={styles.title}>Clientes</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-          <Plus size={24} color="#FFFFFF" />
+        <View style={styles.headerBadge}>
+          <Text style={styles.title}>Clientes</Text>
+        </View>
+        <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/profile' as any)}>
+          <User color="#fff" size={28} />
         </TouchableOpacity>
       </View>
 
+      <Text style={styles.filterLabel}>Filtrar</Text>
       <View style={styles.searchContainer}>
         <Search size={20} color="#999999" />
         <TextInput
@@ -167,13 +126,14 @@ export default function ClientsScreen() {
           placeholder="Buscar clientes..."
           value={searchQuery}
           onChangeText={setSearchQuery}
+          placeholderTextColor="#aaa"
         />
       </View>
 
       <FlatList
         data={filteredClients}
         renderItem={renderClient}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
@@ -183,60 +143,52 @@ export default function ClientsScreen() {
         }
       />
 
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nuevo Cliente</Text>
+              <Text style={styles.modalTitle}>Detalles del cliente</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X size={24} color="#666666" />
+                <X size={24} color="#333" />
               </TouchableOpacity>
             </View>
+            {selectedClient && (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.modalSection}>
+                  <Text style={styles.modalLabel}>Nombre</Text>
+                  <Text style={styles.modalValue}>{selectedClient.full_name}</Text>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Nombre completo *"
-              value={formData.full_name}
-              onChangeText={(text) => setFormData({ ...formData, full_name: text })}
-            />
+                  <Text style={styles.modalLabel}>Teléfono</Text>
+                  <View style={styles.modalRow}>
+                    <Phone size={18} color="#555" />
+                    <Text style={styles.modalValue}>{selectedClient.phone}</Text>
+                  </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Teléfono *"
-              value={formData.phone}
-              onChangeText={(text) => setFormData({ ...formData, phone: text })}
-              keyboardType="phone-pad"
-            />
+                  {selectedClient.email ? (
+                    <>
+                      <Text style={styles.modalLabel}>Correo electrónico</Text>
+                      <View style={styles.modalRow}>
+                        <Mail size={18} color="#555" />
+                        <Text style={styles.modalValue}>{selectedClient.email}</Text>
+                      </View>
+                    </>
+                  ) : null}
 
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={formData.email}
-              onChangeText={(text) => setFormData({ ...formData, email: text })}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+                  <Text style={styles.modalLabel}>Dirección</Text>
+                  <View style={styles.modalRow}>
+                    <MapPin size={18} color="#555" />
+                    <Text style={styles.modalValue}>{selectedClient.address}</Text>
+                  </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Dirección *"
-              value={formData.address}
-              onChangeText={(text) => setFormData({ ...formData, address: text })}
-              multiline
-            />
-
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Notas"
-              value={formData.notes}
-              onChangeText={(text) => setFormData({ ...formData, notes: text })}
-              multiline
-              numberOfLines={3}
-            />
-
-            <TouchableOpacity style={styles.saveButton} onPress={handleAddClient}>
-              <Text style={styles.saveButtonText}>Guardar Cliente</Text>
-            </TouchableOpacity>
+                  {selectedClient.notes ? (
+                    <>
+                      <Text style={styles.modalLabel}>Notas</Text>
+                      <Text style={styles.modalValue}>{selectedClient.notes}</Text>
+                    </>
+                  ) : null}
+                </View>
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
@@ -245,83 +197,144 @@ export default function ClientsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  backgroundShapeBlue: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 250,
+    backgroundColor: '#246AB8',
+    borderBottomRightRadius: 120,
+  },
+  backgroundShapeYellow: {
+    position: 'absolute',
+    bottom: -100,
+    right: -60,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: '#FFD84A',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
     paddingTop: 60,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    paddingHorizontal: 20,
   },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#333333' },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#0066CC',
+  headerBadge: {
+    backgroundColor: '#D1E4FA',
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  title: { fontSize: 20, fontWeight: '700', color: '#1A1A1A' },
+  subtitle: { fontSize: 14, fontStyle: 'italic', color: '#555' },
+  headerIcon: {
+    backgroundColor: '#3C8BF2',
+    width: 55,
+    height: 55,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginLeft: 24,
+    marginTop: 16,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    margin: 16,
+    backgroundColor: '#ffffff',
+    marginHorizontal: 20,
+    marginTop: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 12,
-  },
-  searchInput: { flex: 1, fontSize: 16 },
-  list: { padding: 16 },
-  clientCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000000',
+    paddingVertical: 10,
+    borderRadius: 25,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
-  clientName: { fontSize: 18, fontWeight: '600', color: '#333333', marginBottom: 12 },
-  clientInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  clientText: { fontSize: 14, color: '#666666' },
-  clientNotes: { fontSize: 14, color: '#999999', marginTop: 8, fontStyle: 'italic' },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 8,
+    color: '#333',
+  },
+  list: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 80,
+  },
+  clientCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  iconCircle: {
+    width: 50,
+    height: 50,
+    backgroundColor: '#3C8BF2',
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clientInfo: { flex: 1, marginLeft: 12 },
+  clientName: { fontSize: 16, fontWeight: '600', color: '#000' },
+  clientText: { fontSize: 14, color: '#666', marginTop: 2 },
+  clientArrow: { fontSize: 24, color: '#666', marginRight: 4 },
   emptyState: { alignItems: 'center', paddingVertical: 48 },
   emptyText: { fontSize: 16, color: '#999999' },
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '90%',
+    padding: 20,
+    maxHeight: '85%',
   },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  modalTitle: { fontSize: 24, fontWeight: 'bold', color: '#333333' },
-  input: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  textArea: { height: 100, textAlignVertical: 'top' },
-  saveButton: {
-    backgroundColor: '#0066CC',
-    borderRadius: 12,
-    padding: 16,
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginBottom: 12,
   },
-  saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A' },
+  modalSection: { marginTop: 8 },
+  modalLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#777',
+    marginTop: 12,
+  },
+  modalValue: {
+    fontSize: 16,
+    color: '#333',
+    marginTop: 4,
+  },
+  modalRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

@@ -1,11 +1,25 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { ClipboardList, CheckCircle, Clock, AlertCircle, CheckSquare } from 'lucide-react-native';
-// import { useAuth } from '@/contexts/AuthContext';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+} from 'react-native';
+import {
+  ClipboardList,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  CheckSquare,
+  User,
+} from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 export default function DashboardScreen() {
-  // const { user } = useAuth();
-  const [profile, setProfile] = useState<any>({ full_name: 'Juan Pérez' });
+  const router = useRouter();
+
   const [stats, setStats] = useState({
     pending: 0,
     inProgress: 0,
@@ -21,7 +35,6 @@ export default function DashboardScreen() {
   }, []);
 
   const loadData = async () => {
-    // 🔹 Simulación local (dummy data)
     const dummyOrders = [
       {
         id: 1,
@@ -68,9 +81,6 @@ export default function DashboardScreen() {
       },
     ];
 
-    setRecentOrders(dummyOrders);
-    setPendingTasks(dummyTasks);
-
     const pending = dummyOrders.filter(o => o.status === 'pending').length;
     const inProgress = dummyOrders.filter(o => o.status === 'in_progress').length;
     const completed = dummyOrders.filter(o => o.status === 'completed').length;
@@ -81,6 +91,9 @@ export default function DashboardScreen() {
       completed,
       total: dummyOrders.length,
     });
+
+    setRecentOrders(dummyOrders);
+    setPendingTasks(dummyTasks);
   };
 
   const onRefresh = async () => {
@@ -92,15 +105,13 @@ export default function DashboardScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return '#FFA500';
+        return '#FFB300';
       case 'in_progress':
-        return '#0066CC';
+        return '#3C8BF2';
       case 'completed':
-        return '#00AA00';
-      case 'cancelled':
-        return '#CC0000';
+        return '#4CAF50';
       default:
-        return '#999999';
+        return '#999';
     }
   };
 
@@ -112,8 +123,6 @@ export default function DashboardScreen() {
         return 'En Progreso';
       case 'completed':
         return 'Completada';
-      case 'cancelled':
-        return 'Cancelada';
       default:
         return status;
     }
@@ -124,242 +133,185 @@ export default function DashboardScreen() {
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
+      <View style={styles.backgroundBlue} />
+      <View style={styles.backgroundYellow} />
+
       <View style={styles.header}>
-        <Text style={styles.greeting}>Hola, {profile?.full_name || 'Usuario'}</Text>
-        <Text style={styles.subtitle}>Aquí está tu resumen de hoy</Text>
+        <View style={styles.headerBadge}>
+          <Text style={styles.greeting}>Hola, Técnico!</Text>
+          <Text style={styles.subtitle}>Aquí está tu resumen de hoy</Text>
+        </View>
+
+        <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/profile' as any)}>
+          <User color="#fff" size={28} />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.statsGrid}>
-        <View style={[styles.statCard, { backgroundColor: '#FFF5E6' }]}>
-          <Clock size={24} color="#FFA500" />
-          <Text style={styles.statNumber}>{stats.pending}</Text>
-          <Text style={styles.statLabel}>Pendientes</Text>
-        </View>
+      <View style={styles.summaryCard}>
+        <Text style={styles.sectionTitle}>Resumen General</Text>
 
-        <View style={[styles.statCard, { backgroundColor: '#E6F2FF' }]}>
-          <AlertCircle size={24} color="#0066CC" />
-          <Text style={styles.statNumber}>{stats.inProgress}</Text>
-          <Text style={styles.statLabel}>En Progreso</Text>
+        <View style={styles.summaryRow}>
+          <View style={[styles.dot, { backgroundColor: '#FFB300' }]} />
+          <Text style={styles.summaryText}>{stats.pending} Órdenes Pendientes</Text>
         </View>
+        <View style={styles.separator} />
 
-        <View style={[styles.statCard, { backgroundColor: '#E6FFE6' }]}>
-          <CheckCircle size={24} color="#00AA00" />
-          <Text style={styles.statNumber}>{stats.completed}</Text>
-          <Text style={styles.statLabel}>Completadas</Text>
+        <View style={styles.summaryRow}>
+          <View style={[styles.dot, { backgroundColor: '#3C8BF2' }]} />
+          <Text style={styles.summaryText}>{stats.inProgress} Órdenes en Progreso</Text>
         </View>
+        <View style={styles.separator} />
 
-        <View style={[styles.statCard, { backgroundColor: '#F5F5F5' }]}>
-          <ClipboardList size={24} color="#666666" />
-          <Text style={styles.statNumber}>{stats.total}</Text>
-          <Text style={styles.statLabel}>Total</Text>
+        <View style={styles.summaryRow}>
+          <View style={[styles.dot, { backgroundColor: '#4CAF50' }]} />
+          <Text style={styles.summaryText}>{stats.completed} Órdenes Completadas</Text>
+        </View>
+        <View style={styles.separator} />
+
+        <View style={styles.summaryRow}>
+          <View style={[styles.dot, { backgroundColor: '#999' }]} />
+          <Text style={styles.summaryText}>{stats.total} Total de Órdenes</Text>
         </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Órdenes Recientes</Text>
-
-        {recentOrders.length === 0 ? (
-          <View style={styles.emptyState}>
-            <ClipboardList size={48} color="#CCCCCC" />
-            <Text style={styles.emptyText}>No hay órdenes recientes</Text>
-          </View>
-        ) : (
-          recentOrders.map((order) => (
-            <TouchableOpacity key={order.id} style={styles.orderCard}>
-              <View style={styles.orderHeader}>
-                <Text style={styles.orderTitle}>{order.title}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
-                  <Text style={styles.statusText}>{getStatusLabel(order.status)}</Text>
-                </View>
+        {recentOrders.map(order => (
+          <TouchableOpacity key={order.id} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>{order.title}</Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: getStatusColor(order.status) },
+                ]}
+              >
+                <Text style={styles.statusText}>{getStatusLabel(order.status)}</Text>
               </View>
-              <Text style={styles.orderClient}>{order.clients?.full_name}</Text>
-              <Text style={styles.orderService}>{order.services?.name}</Text>
-              <Text style={styles.orderDate}>
-                {new Date(order.scheduled_date).toLocaleDateString('es-MX', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </Text>
-            </TouchableOpacity>
-          ))
-        )}
+            </View>
+            <Text style={styles.cardSub}>{order.clients.full_name}</Text>
+            <Text style={styles.cardSubBlue}>{order.services.name}</Text>
+            <Text style={styles.cardDate}>
+              {new Date(order.scheduled_date).toLocaleDateString('es-MX', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tareas Pendientes</Text>
-
-        {pendingTasks.length === 0 ? (
-          <View style={styles.emptyState}>
-            <CheckSquare size={48} color="#CCCCCC" />
-            <Text style={styles.emptyText}>No hay tareas pendientes</Text>
-          </View>
-        ) : (
-          pendingTasks.map((task) => (
-            <TouchableOpacity key={task.id} style={styles.taskCard}>
-              <View style={styles.taskHeader}>
-                <CheckSquare size={20} color="#0066CC" />
-                <Text style={styles.taskTitle}>{task.title}</Text>
-              </View>
-              <Text style={styles.taskClient}>Cliente: {task.client_name}</Text>
-              <Text style={styles.taskDate}>
-                {new Date(task.date_).toLocaleDateString('es-MX', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })} • {task.start_time.slice(0, 5)}
-              </Text>
-            </TouchableOpacity>
-          ))
-        )}
+        {pendingTasks.map(task => (
+          <TouchableOpacity key={task.id} style={styles.card}>
+            <View style={styles.taskHeader}>
+              <Clock size={20} color="#3C8BF2" />
+              <Text style={styles.taskTitle}>{task.title}</Text>
+            </View>
+            <Text style={styles.cardSub}>Cliente: {task.client_name}</Text>
+            <Text style={styles.cardDate}>
+              {new Date(task.date_).toLocaleDateString('es-MX', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}{' '}
+              • {task.start_time.slice(0, 5)}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
+  container: { flex: 1, backgroundColor: '#FFF' },
+  backgroundBlue: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 280,
+    backgroundColor: '#246AB8',
+    borderBottomRightRadius: 140,
+  },
+  backgroundYellow: {
+    position: 'absolute',
+    bottom: -80,
+    left: -50,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: '#FFD84A',
   },
   header: {
-    backgroundColor: '#0066CC',
-    padding: 24,
-    paddingTop: 60,
-    paddingBottom: 32,
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.9,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    gap: 8,
-  },
-  statNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  section: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 16,
-  },
-  orderCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    paddingTop: 70,
+    paddingHorizontal: 20,
   },
-  orderTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-    flex: 1,
+  headerBadge: {
+    backgroundColor: '#D1E4FA',
+    borderRadius: 25,
+    paddingVertical: 14,
+    paddingHorizontal: 22,
+    width: '75%',
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  orderClient: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
-  },
-  orderService: {
-    fontSize: 14,
-    color: '#0066CC',
-    marginBottom: 4,
-  },
-  orderDate: {
-    fontSize: 12,
-    color: '#999999',
-  },
-  emptyState: {
+  greeting: { fontSize: 18, fontWeight: '700', color: '#1A1A1A' },
+  subtitle: { fontSize: 13, color: '#555', fontStyle: 'italic' },
+  headerIcon: {
+    backgroundColor: '#3C8BF2',
+    width: 55,
+    height: 55,
+    borderRadius: 40,
     alignItems: 'center',
-    paddingVertical: 48,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 3,
+    elevation: 4,
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#999999',
-    marginTop: 16,
-  },
-  taskCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000000',
+  summaryCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 30,
+    marginHorizontal: 25,
+    marginTop: 30,
+    paddingVertical: 20,
+    paddingHorizontal: 25,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
+  dot: { width: 14, height: 14, borderRadius: 7, marginRight: 12 },
+  summaryText: { fontSize: 15, color: '#1A1A1A', fontWeight: '600' },
+  separator: { height: 1, backgroundColor: '#E5E5E5', marginVertical: 8 },
+  section: { paddingHorizontal: 20, marginTop: 24 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 14 },
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
-    elevation: 2,
-    borderLeftWidth: 3,
-    borderLeftColor: '#0066CC',
+    elevation: 3,
   },
-  taskHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  taskTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-    flex: 1,
-  },
-  taskClient: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
-  },
-  taskDate: {
-    fontSize: 12,
-    color: '#999999',
-  },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  cardTitle: { fontSize: 16, fontWeight: '600', color: '#333', flex: 1 },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  statusText: { color: '#FFF', fontSize: 11, fontWeight: '600' },
+  cardSub: { fontSize: 14, color: '#666' },
+  cardSubBlue: { fontSize: 14, color: '#0066CC', marginBottom: 4 },
+  cardDate: { fontSize: 12, color: '#999' },
+  taskHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  taskTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
 });
-
