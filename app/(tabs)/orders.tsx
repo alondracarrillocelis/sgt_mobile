@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Modal, TextInput, StyleSheet, ScrollView } from 'react-native';
-import { Plus, X, Calendar, MapPin, User, CheckCircle2, Clock } from 'lucide-react-native';
+import { X, Calendar, MapPin, CheckCircle2, Clock } from 'lucide-react-native';
 
 interface Product {
   id_product: number;
@@ -98,29 +98,11 @@ const OrdersScreen = () => {
     setModalVisible(true);
   };
 
-  const handleAddPress = () => {
-    // lógica de creación nueva orden
-    alert('Aquí abrirías el formulario de nueva orden 📦');
-  };
-
-  // Ejemplo de conexión futura con backend:
-  /*
-  useEffect(() => {
-    fetch('http://localhost:4000/orders')
-      .then(res => res.json())
-      .then(data => setOrders(data))
-      .catch(err => console.error(err));
-  }, []);
-  */
-
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Órdenes</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
-          <Plus color="#FFF" size={24} />
-        </TouchableOpacity>
       </View>
 
       {/* Lista */}
@@ -306,7 +288,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', // 🔹 mantenido igual para no afectar layout
     alignItems: 'center',
     padding: 16,
     paddingTop: 60,
@@ -318,14 +300,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333333',
-  },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#0066CC',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   list: {
     padding: 16,
