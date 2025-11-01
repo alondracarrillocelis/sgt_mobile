@@ -112,8 +112,9 @@ export default function ClientsScreen() {
       <View style={styles.header}>
         <View style={styles.headerBadge}>
           <Text style={styles.title}>Clientes</Text>
+           <Text style={styles.subtitle}>Consulta tus clientes</Text>
         </View>
-        <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/profile' as any)}>
+        <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/profile')}>
           <User color="#fff" size={28} />
         </TouchableOpacity>
       </View>
