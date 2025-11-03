@@ -138,11 +138,11 @@ export default function DashboardScreen() {
 
       <View style={styles.header}>
         <View style={styles.headerBadge}>
-          <Text style={styles.greeting}>Hola, Técnico!</Text>
+          <Text style={styles.greeting}>Hola, user</Text>
           <Text style={styles.subtitle}>Aquí está tu resumen de hoy</Text>
         </View>
 
-        <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/profile' as any)}>
+        <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/profile')}>
           <User color="#fff" size={28} />
         </TouchableOpacity>
       </View>

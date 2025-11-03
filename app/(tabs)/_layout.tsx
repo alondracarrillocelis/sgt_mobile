@@ -5,10 +5,9 @@ import {
   ClipboardList,
   CheckSquare,
   Calendar,
-  User,
   ChevronDown,
 } from 'lucide-react-native';
-import { View, StyleSheet, Animated } from 'react-native';
+import { StyleSheet, Animated, View } from 'react-native';
 import { useRef, useEffect } from 'react';
 
 function AnimatedIcon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
@@ -38,7 +37,7 @@ function AnimatedIcon({ focused, children }: { focused: boolean; children: React
 
 export default function TabLayout() {
   return (
-    <View style={styles.container}>
+    <View style={styles.wrapper}>
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -47,6 +46,11 @@ export default function TabLayout() {
           tabBarShowLabel: true,
           tabBarLabelStyle: styles.tabLabel,
           tabBarStyle: styles.tabBar,
+          // 🔹 Esto evita que el contenido quede cubierto
+          sceneStyle: {
+            backgroundColor: '#FFF',
+            paddingBottom: 85, // deja espacio visual bajo la barra
+          },
         }}
       >
         <Tabs.Screen
@@ -121,16 +125,16 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     flex: 1,
-    backgroundColor: '#FFD84A',
+    backgroundColor: '#FFD84A', // color de fondo del mockup
   },
   tabBar: {
     position: 'absolute',
     bottom: 15,
     left: 10,
     right: 10,
-    height: 68, 
+    height: 68,
     borderRadius: 40,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 0,
@@ -139,10 +143,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
-    paddingVertical: 4, 
+    paddingVertical: 4,
   },
   iconBubble: {
-    width: 40, 
+    width: 40,
     height: 40,
     borderRadius: 22,
     backgroundColor: '#D9D9D9',
@@ -152,14 +156,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    marginBottom: -9, 
+    marginBottom: -9,
   },
   activeBubble: {
     backgroundColor: '#3C8BF2',
   },
   tabLabel: {
     fontSize: 10,
-    marginTop: 13, 
+    marginTop: 10,
+    marginBottom: 4, // 🔹 más espacio para no pegarse al borde
     color: '#333',
   },
 });
