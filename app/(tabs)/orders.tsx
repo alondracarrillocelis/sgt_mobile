@@ -67,9 +67,7 @@ export default function OrdersScreen() {
       duration: 45,
       elapsed: 0,
       activities: 'Inspección de switches y verificación de conectividad LAN.',
-      products: [
-        { id_product: 3, name: 'Tester de red', quantity: 1, unit_price: 500 },
-      ],
+      products: [{ id_product: 3, name: 'Tester de red', quantity: 1, unit_price: 500 }],
     },
   ]);
 
@@ -85,13 +83,14 @@ export default function OrdersScreen() {
       setFilteredOrders(orders);
     } else {
       const query = searchQuery.toLowerCase();
-      const filtered = orders.filter(
-        o =>
-          o.client_name.toLowerCase().includes(query) ||
-          o.service_name.toLowerCase().includes(query) ||
-          o.client_address.toLowerCase().includes(query)
+      setFilteredOrders(
+        orders.filter(
+          o =>
+            o.client_name.toLowerCase().includes(query) ||
+            o.service_name.toLowerCase().includes(query) ||
+            o.client_address.toLowerCase().includes(query)
+        )
       );
-      setFilteredOrders(filtered);
     }
   }, [searchQuery, orders]);
 
@@ -130,12 +129,14 @@ export default function OrdersScreen() {
       )
     );
 
+
+    const order = orders.find(o => o.id_service_order === id);
+    if (order) setSelectedOrder({ ...order, state_: 'en_progreso' });
+
     intervalRef.current = setInterval(() => {
       setOrders(prev =>
         prev.map(o =>
-          o.id_service_order === id
-            ? { ...o, elapsed: o.elapsed + 1 }
-            : o
+          o.id_service_order === id ? { ...o, elapsed: o.elapsed + 1 } : o
         )
       );
     }, 1000);
@@ -149,6 +150,10 @@ export default function OrdersScreen() {
         o.id_service_order === id ? { ...o, state_: 'completado' } : o
       )
     );
+
+
+    const order = orders.find(o => o.id_service_order === id);
+    if (order) setSelectedOrder({ ...order, state_: 'completado' });
   };
 
   const openOrder = (order: Order) => {
@@ -188,7 +193,7 @@ export default function OrdersScreen() {
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar órdenes..."
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#222222"
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -199,10 +204,7 @@ export default function OrdersScreen() {
         keyExtractor={item => item.id_service_order.toString()}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.orderCard}
-            onPress={() => openOrder(item)}
-          >
+          <TouchableOpacity style={styles.orderCard} onPress={() => openOrder(item)}>
             <View
               style={[
                 styles.statusCircle,
@@ -212,9 +214,7 @@ export default function OrdersScreen() {
             <View style={styles.orderInfo}>
               <Text style={styles.clientName}>{item.client_name}</Text>
               <Text style={styles.serviceName}>{item.service_name}</Text>
-              <Text style={styles.elapsedText}>
-                {formatTime(item.elapsed)}
-              </Text>
+              <Text style={styles.elapsedText}>{formatTime(item.elapsed)}</Text>
             </View>
             <Text style={styles.arrow}>›</Text>
           </TouchableOpacity>
@@ -241,6 +241,7 @@ export default function OrdersScreen() {
                     {selectedOrder.scheduled_date} • {selectedOrder.start_time} - {selectedOrder.end_time}
                   </Text>
                 </View>
+
                 <View style={styles.detailsRow}>
                   <MapPin size={16} color="#555" />
                   <Text style={styles.detailText}>{selectedOrder.client_address}</Text>
@@ -351,11 +352,6 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 3,
-    elevation: 4,
   },
   filterLabel: {
     fontSize: 16,
@@ -412,7 +408,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 40,
     padding: 24,
-    elevation: 8,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -435,10 +430,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     paddingVertical: 14,
     paddingHorizontal: 40,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 4,
   },
   actionText: { color: '#000', fontSize: 16, fontWeight: '700', textAlign: 'center' },
   completedText: {
