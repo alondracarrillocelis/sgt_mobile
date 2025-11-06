@@ -207,7 +207,7 @@ export default function DashboardScreen() {
         {pendingTasks.map(task => (
           <TouchableOpacity key={task.id} style={styles.card}>
             <View style={styles.taskHeader}>
-              <Clock size={20} color="#3C8BF2" />
+              <Clock size={20} color="#000" />
               <Text style={styles.taskTitle}>{task.title}</Text>
             </View>
             <Text style={styles.cardSub}>Cliente: {task.client_name}</Text>

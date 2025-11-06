@@ -127,7 +127,7 @@ export default function ClientsScreen() {
           placeholder="Buscar clientes..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#222222"
         />
       </View>
 
@@ -226,9 +226,9 @@ const styles = StyleSheet.create({
   },
   headerBadge: {
     backgroundColor: '#D1E4FA',
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    borderRadius: 25,
+    paddingVertical: 14,
+    paddingHorizontal: 22,
   },
   title: { fontSize: 20, fontWeight: '700', color: '#1A1A1A' },
   subtitle: { fontSize: 14, fontStyle: 'italic', color: '#555' },

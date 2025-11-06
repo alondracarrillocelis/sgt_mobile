@@ -4,8 +4,6 @@ import {
   Users,
   ClipboardList,
   CheckSquare,
-  Calendar,
-  ChevronDown,
 } from 'lucide-react-native';
 import { StyleSheet, Animated, View } from 'react-native';
 import { useRef, useEffect } from 'react';
@@ -46,10 +44,9 @@ export default function TabLayout() {
           tabBarShowLabel: true,
           tabBarLabelStyle: styles.tabLabel,
           tabBarStyle: styles.tabBar,
-          // 🔹 Esto evita que el contenido quede cubierto
           sceneStyle: {
             backgroundColor: '#FFF',
-            paddingBottom: 85, // deja espacio visual bajo la barra
+            paddingBottom: 85,
           },
         }}
       >
@@ -97,26 +94,12 @@ export default function TabLayout() {
             ),
           }}
         />
+
+
         <Tabs.Screen
-          name="calendar"
+          name="profile"
           options={{
-            title: 'Calendario',
-            tabBarIcon: ({ focused }) => (
-              <AnimatedIcon focused={focused}>
-                <Calendar size={21} color={focused ? '#fff' : '#555'} />
-              </AnimatedIcon>
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="services"
-          options={{
-            title: 'Services',
-            tabBarIcon: ({ focused }) => (
-              <AnimatedIcon focused={focused}>
-                <ChevronDown size={21} color={focused ? '#fff' : '#555'} />
-              </AnimatedIcon>
-            ),
+            href: null, 
           }}
         />
       </Tabs>
@@ -127,7 +110,7 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-    backgroundColor: '#FFD84A', // color de fondo del mockup
+    backgroundColor: '#FFD84A',
   },
   tabBar: {
     position: 'absolute',
@@ -164,7 +147,7 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 10,
     marginTop: 10,
-    marginBottom: 4, // 🔹 más espacio para no pegarse al borde
+    marginBottom: 4,
     color: '#333',
   },
 });
