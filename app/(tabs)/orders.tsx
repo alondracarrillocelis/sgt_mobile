@@ -10,14 +10,21 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import { CheckCircle, MinusCircle, PlusCircle } from 'lucide-react-native';
+
 import { useRouter } from 'expo-router';
-import { Calendar, MapPin, User, X, Search } from 'lucide-react-native';
+import { Calendar, MapPin, User, X, Search, Star } from 'lucide-react-native';
+import SignatureCanvas from 'react-native-signature-canvas';
+import { Trash2, Save } from 'lucide-react-native';
+
+
 
 interface Product {
   id_product: number;
   name: string;
   quantity: number;
-  unit_price: number;
+  unit?: string;
+  unit_price?: number;
 }
 
 interface Order {
@@ -33,6 +40,10 @@ interface Order {
   elapsed: number;
   products: Product[];
   activities: string;
+  materialUsage?: 'completo' | 'menos' | 'mas' | null;
+  rating?: number;
+  signature?: string | null;
+
 }
 
 export default function OrdersScreen() {
@@ -51,9 +62,12 @@ export default function OrdersScreen() {
       elapsed: 0,
       activities: 'Montaje y ajuste de antena en torre principal.',
       products: [
-        { id_product: 1, name: 'Antena parabólica', quantity: 1, unit_price: 800 },
-        { id_product: 2, name: 'Cable coaxial 20m', quantity: 2, unit_price: 120 },
+        { id_product: 1, name: 'Cable coaxial', quantity: 20, unit: 'm' },
+        { id_product: 2, name: 'Conector RG6', quantity: 4, unit: 'pza' },
       ],
+      materialUsage: null,
+      rating: 0,
+      signature: null,
     },
     {
       id_service_order: 2,
@@ -68,16 +82,25 @@ export default function OrdersScreen() {
       elapsed: 0,
       activities: 'Inspección de switches y verificación de conectividad LAN.',
       products: [{ id_product: 3, name: 'Tester de red', quantity: 1, unit_price: 500 }],
+      materialUsage: null,
+      rating: 0,
+      signature: null,
     },
   ]);
+  const [materialDetailsVisible, setMaterialDetailsVisible] = useState(false);
+  const [materialInputs, setMaterialInputs] = useState<{ [key: number]: number }>({});
 
   const [filteredOrders, setFilteredOrders] = useState<Order[]>(orders);
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [step, setStep] = useState(1);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sigRef = useRef<any>(null);
+  const latestSignature = useRef<string | null>(null);
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredOrders(orders);
@@ -123,15 +146,15 @@ export default function OrdersScreen() {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     setActiveOrderId(id);
-    setOrders(prev =>
-      prev.map(o =>
+
+    setOrders(prev => {
+      const newOrders = prev.map(o =>
         o.id_service_order === id ? { ...o, state_: 'en_progreso' } : o
-      )
-    );
-
-
-    const order = orders.find(o => o.id_service_order === id);
-    if (order) setSelectedOrder({ ...order, state_: 'en_progreso' });
+      );
+      const updatedOrder = newOrders.find(o => o.id_service_order === id) || null;
+      if (updatedOrder) setSelectedOrder({ ...updatedOrder, state_: 'en_progreso' });
+      return newOrders;
+    });
 
     intervalRef.current = setInterval(() => {
       setOrders(prev =>
@@ -143,31 +166,61 @@ export default function OrdersScreen() {
   };
 
   const completeOrder = (id: number) => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setActiveOrderId(null);
-    setOrders(prev =>
-      prev.map(o =>
+
+    setOrders(prev => {
+      const newOrders = prev.map(o =>
         o.id_service_order === id ? { ...o, state_: 'completado' } : o
-      )
-    );
-
-
-    const order = orders.find(o => o.id_service_order === id);
-    if (order) setSelectedOrder({ ...order, state_: 'completado' });
+      );
+      const updatedOrder = newOrders.find(o => o.id_service_order === id) || null;
+      if (updatedOrder) {
+        setSelectedOrder({ ...updatedOrder, state_: 'completado' });
+        setStep(2); 
+      }
+      return newOrders;
+    });
   };
 
   const openOrder = (order: Order) => {
     setSelectedOrder(order);
     setModalVisible(true);
+    setStep(1);
   };
 
-  const closeModal = () => setModalVisible(false);
+  const closeModal = () => {
+    setModalVisible(false);
+    // opcional: limpiar selectedOrder y step
+    // setSelectedOrder(null);
+    // setStep(1);
+  };
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
+
+  const handleSignature = (sig: string) => {
+    if (!selectedOrder) return;
+    setOrders(prev => {
+      const newOrders = prev.map(o =>
+        o.id_service_order === selectedOrder.id_service_order ? { ...o, signature: sig } : o
+      );
+      const updatedOrder = newOrders.find(o => o.id_service_order === selectedOrder.id_service_order) || null;
+      if (updatedOrder) {
+        setSelectedOrder(updatedOrder);
+      }
+      return newOrders;
+    });
+
+    Alert.alert('Firma guardada', 'El cliente ha firmado la orden.');
+    setModalVisible(false);
+    setStep(1);
+  };
 
   return (
     <View style={styles.container}>
@@ -232,74 +285,330 @@ export default function OrdersScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.modalSubtitle}>{selectedOrder.service_name}</Text>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={scrollEnabled}
+              >                {step === 1 && (
+                <>
+                  <Text style={styles.modalSubtitle}>{selectedOrder.service_name}</Text>
 
-                <View style={styles.detailsRow}>
-                  <Calendar size={16} color="#555" />
-                  <Text style={styles.detailText}>
-                    {selectedOrder.scheduled_date} • {selectedOrder.start_time} - {selectedOrder.end_time}
-                  </Text>
-                </View>
-
-                <View style={styles.detailsRow}>
-                  <MapPin size={16} color="#555" />
-                  <Text style={styles.detailText}>{selectedOrder.client_address}</Text>
-                </View>
-
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Actividades</Text>
-                  <Text style={styles.sectionText}>{selectedOrder.activities}</Text>
-                </View>
-
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Materiales</Text>
-                  {selectedOrder.products.map((p, i) => (
-                    <Text key={i} style={styles.sectionText}>
-                      {p.name} ({p.quantity})
+                  <View style={styles.detailsRow}>
+                    <Calendar size={16} color="#555" />
+                    <Text style={styles.detailText}>
+                      {selectedOrder.scheduled_date} • {selectedOrder.start_time} - {selectedOrder.end_time}
                     </Text>
-                  ))}
-                </View>
+                  </View>
 
-                <View style={styles.timerContainer}>
-                  <Text style={styles.timerLabel}>Tiempo transcurrido</Text>
-                  <Text style={styles.timerDisplay}>
-                    {formatTime(
-                      orders.find(o => o.id_service_order === selectedOrder.id_service_order)?.elapsed || 0
-                    )}
-                  </Text>
-                </View>
+                  <View style={styles.detailsRow}>
+                    <MapPin size={16} color="#555" />
+                    <Text style={styles.detailText}>{selectedOrder.client_address}</Text>
+                  </View>
 
-                <View style={styles.actions}>
-                  {selectedOrder.state_ !== 'completado' ? (
-                    <TouchableOpacity
-                      style={[
-                        styles.actionButton,
-                        {
-                          backgroundColor:
-                            selectedOrder.state_ === 'en_progreso'
-                              ? '#6FCF97'
-                              : '#FFD84A',
-                        },
-                      ]}
-                      onPress={() =>
-                        selectedOrder.state_ === 'en_progreso'
-                          ? completeOrder(selectedOrder.id_service_order)
-                          : startTimer(selectedOrder.id_service_order)
-                      }
-                    >
-                      <Text style={styles.actionText}>
-                        {selectedOrder.state_ === 'en_progreso'
-                          ? 'Completar'
-                          : 'Comenzar'}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Actividades</Text>
+                    <Text style={styles.sectionText}>{selectedOrder.activities}</Text>
+                  </View>
+
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Materiales</Text>
+                    {selectedOrder.products.map((p, i) => (
+                      <Text key={i} style={styles.sectionText}>
+                        {p.name} ({p.quantity})
                       </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={styles.completedText}>
-                      Orden completada ({formatTime(selectedOrder.elapsed)})
+                    ))}
+                  </View>
+
+                  <View style={styles.timerContainer}>
+                    <Text style={styles.timerLabel}>Tiempo transcurrido</Text>
+                    <Text style={styles.timerDisplay}>
+                      {formatTime(
+                        orders.find(o => o.id_service_order === selectedOrder.id_service_order)?.elapsed || 0
+                      )}
                     </Text>
-                  )}
-                </View>
+                  </View>
+
+                  <View style={styles.actions}>
+                    {selectedOrder.state_ !== 'completado' ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.actionButton,
+                          {
+                            backgroundColor:
+                              selectedOrder.state_ === 'en_progreso'
+                                ? '#6FCF97'
+                                : '#FFD84A',
+                          },
+                        ]}
+                        onPress={() =>
+                          selectedOrder.state_ === 'en_progreso'
+                            ? completeOrder(selectedOrder.id_service_order)
+                            : startTimer(selectedOrder.id_service_order)
+                        }
+                      >
+                        <Text style={styles.actionText}>
+                          {selectedOrder.state_ === 'en_progreso'
+                            ? 'Completar'
+                            : 'Comenzar'}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={styles.completedText}>
+                        Orden completada ({formatTime(selectedOrder.elapsed)})
+                      </Text>
+                    )}
+                  </View>
+                </>
+              )}
+
+                {selectedOrder.state_ === 'completado' && step === 2 && (
+                  <View style={styles.stepContainer}>
+                    <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>
+                      ¿Se utilizó el material completo?
+                    </Text>
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                      {[
+                        { key: 'completo', icon: <CheckCircle size={30} color="#4CAF50" /> },
+                        { key: 'menos', icon: <MinusCircle size={30} color="#FFA000" /> },
+                        { key: 'más', icon: <PlusCircle size={30} color="#1976D2" /> },
+                      ].map(option => (
+                        <TouchableOpacity
+                          key={option.key}
+                          style={[
+                            {
+                              flex: 1,
+                              marginHorizontal: 6,
+                              paddingVertical: 12,
+                              borderRadius: 20,
+                              alignItems: 'center',
+                              backgroundColor:
+                                selectedOrder.materialUsage === option.key ? '#FFD84A' : '#EDEDED',
+                            },
+                          ]}
+                          onPress={() => {
+                            const id = selectedOrder.id_service_order;
+
+                            setOrders(prev => {
+                              const newOrders = prev.map(o =>
+                                o.id_service_order === id ? { ...o, materialUsage: option.key as any } : o
+                              );
+                              setSelectedOrder(newOrders.find(o => o.id_service_order === id)!);
+                              return newOrders;
+                            });
+
+                            if (option.key === 'completo') {
+                              setMaterialDetailsVisible(false);
+                              setStep(3);
+                            } else {
+                              const inputs: any = {};
+                              selectedOrder.products.forEach(p => {
+                                inputs[p.id_product] = p.quantity;
+                              });
+                              setMaterialInputs(inputs);
+                              setMaterialDetailsVisible(true);
+                            }
+                          }}
+                        >
+                          {option.icon}
+                          <Text style={{ fontSize: 14, fontWeight: '600', marginTop: 4 }}>
+                            {option.key.toUpperCase()}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    {materialDetailsVisible && (
+                      <View style={{ width: '100%', marginTop: 20 }}>
+                        <Text style={styles.sectionTitle}>Indica el material utilizado</Text>
+
+                        {selectedOrder.products.map(product => (
+                          <View
+                            key={product.id_product}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              marginVertical: 10,
+                              backgroundColor: '#F9F9F9',
+                              padding: 10,
+                              borderRadius: 12,
+                            }}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 15, fontWeight: '600' }}>{product.name}</Text>
+                              <Text style={{ fontSize: 12, color: '#777' }}>
+                                Cantidad asignada: {product.quantity}
+                              </Text>
+                            </View>
+
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              <TextInput
+                                keyboardType="numeric"
+                                style={{
+                                  width: 70,
+                                  padding: 6,
+                                  borderWidth: 1,
+                                  borderRadius: 10,
+                                  textAlign: 'center',
+                                  backgroundColor: '#FFF',
+                                  marginRight: 6,
+                                }}
+                                value={String(materialInputs[product.id_product] || '')}
+                                onChangeText={value => {
+                                  setMaterialInputs(prev => ({
+                                    ...prev,
+                                    [product.id_product]: Number(value),
+                                  }));
+                                }}
+                              />
+
+                              <Text style={{ fontSize: 14, fontWeight: '500' }}>
+                                {product.unit ? product.unit : 'u'}
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+
+                        <TouchableOpacity
+                          style={[
+                            styles.actionButton,
+                            { backgroundColor: '#246AB8', marginTop: 22, alignSelf: 'center', width: '70%' },
+                          ]}
+                          onPress={() => {
+                            const id = selectedOrder.id_service_order;
+                            setOrders(prev => {
+                              const newOrders = prev.map(o =>
+                                o.id_service_order === id
+                                  ? { ...o, productsUsed: materialInputs }
+                                  : o
+                              );
+                              setSelectedOrder(newOrders.find(o => o.id_service_order === id)!);
+                              return newOrders;
+                            });
+
+                            setStep(3);
+                          }}
+                        >
+                          <Text style={styles.actionText}>Guardar y Continuar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+
+
+                {step === 3 && (
+                  <View style={styles.stepContainer}>
+                    <Text style={styles.sectionTitle}>Califica al técnico</Text>
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 10 }}>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <TouchableOpacity
+                          key={star}
+                          onPress={() => {
+                            if (!selectedOrder) return;
+                            const id = selectedOrder.id_service_order;
+                            // guardamos rating en orders y selectedOrder
+                            setOrders(prev => {
+                              const newOrders = prev.map(o =>
+                                o.id_service_order === id ? { ...o, rating: star } : o
+                              );
+                              const updated = newOrders.find(o => o.id_service_order === id) || null;
+                              if (updated) setSelectedOrder(updated);
+                              return newOrders;
+                            });
+                          }}
+                        >
+                          <Star
+                            size={32}
+                            color={selectedOrder.rating && selectedOrder.rating >= star ? '#FFD84A' : '#CCC'}
+                            fill={selectedOrder.rating && selectedOrder.rating >= star ? '#FFD84A' : 'none'}
+                            style={{ marginHorizontal: 4 }}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#246AB8', marginTop: 16 }]}
+                      onPress={() => setStep(4)}
+                    >
+                      <Text style={styles.actionText}>Continuar a Firma</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {step === 4 && (
+                  <View style={styles.stepContainer}>
+                    <Text style={styles.sectionTitle}>Firma del cliente</Text>
+
+                    <View
+                      style={{
+                        width: '100%',
+                        height: 300,
+                        borderWidth: 1,
+                        borderColor: '#ccc',
+                        borderRadius: 20,
+                        overflow: 'hidden',
+                        marginTop: 10,
+                        backgroundColor: '#FFF',
+                      }}
+                    >
+                      <SignatureCanvas
+                        ref={sigRef}
+                        onBegin={() => setScrollEnabled(false)}
+                        onEnd={() => setScrollEnabled(true)}
+                        onOK={(signature) => handleSignature(signature)}
+                        webStyle={`
+          .m-signature-pad--footer { display: none; }
+          .m-signature-pad { box-shadow: none; border: 1px solid #ccc; }
+        `}
+                      />
+                    </View>
+
+                    <View style={{ flexDirection: 'row', marginTop: 20 }}>
+                      {/* LIMPIAR */}
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 12,
+                          paddingHorizontal: 20,
+                          backgroundColor: '#E57373',
+                          borderRadius: 25,
+                          marginHorizontal: 6,
+                        }}
+                        onPress={() => sigRef.current?.clearSignature()}
+                      >
+                        <Trash2 color="#fff" size={20} />
+                        <Text style={{ color: '#fff', marginLeft: 8, fontSize: 15, fontWeight: '600' }}>
+                          Limpiar
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* GUARDAR */}
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 12,
+                          paddingHorizontal: 20,
+                          backgroundColor: '#246AB8',
+                          borderRadius: 25,
+                          marginHorizontal: 6,
+                        }}
+                        onPress={() => sigRef.current?.readSignature()}
+                      >
+                        <Save color="#fff" size={20} />
+                        <Text style={{ color: '#fff', marginLeft: 10, fontSize: 15, fontWeight: '600' }}>
+                          Guardar
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+
               </ScrollView>
             </View>
           </View>
@@ -309,6 +618,7 @@ export default function OrdersScreen() {
   );
 }
 
+// --- estilos originales intactos ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   backgroundBlue: {
@@ -417,26 +727,33 @@ const styles = StyleSheet.create({
   },
   modalTitle: { fontSize: 22, fontWeight: '700', color: '#000' },
   modalSubtitle: { fontSize: 16, fontStyle: 'italic', color: '#666' },
-  detailsRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
-  detailText: { marginLeft: 8, color: '#444', fontSize: 14 },
-  section: { marginTop: 14 },
-  sectionTitle: { fontWeight: '700', fontSize: 15, color: '#333', marginBottom: 6 },
-  sectionText: { fontSize: 14, color: '#555', marginBottom: 4 },
-  timerContainer: { marginVertical: 16, alignItems: 'center' },
-  timerLabel: { color: '#555', marginBottom: 4 },
-  timerDisplay: { fontSize: 40, fontWeight: '800', color: '#000' },
-  actions: { flexDirection: 'row', justifyContent: 'center', marginTop: 14 },
+  detailsRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
+  detailText: { fontSize: 14, color: '#444', marginLeft: 6 },
+  section: { marginTop: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#000' },
+  sectionText: { fontSize: 14, color: '#555', marginTop: 4 },
+  timerContainer: { alignItems: 'center', marginVertical: 14 },
+  timerLabel: { fontSize: 14, color: '#666' },
+  timerDisplay: { fontSize: 20, fontWeight: '700', color: '#000' },
+  actions: { alignItems: 'center', marginTop: 16 },
   actionButton: {
-    borderRadius: 30,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
   },
-  actionText: { color: '#000', fontSize: 16, fontWeight: '700', textAlign: 'center' },
-  completedText: {
-    color: '#4CAF50',
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginTop: 10,
+  actionText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  completedText: { fontSize: 14, fontStyle: 'italic', color: '#666' },
+  stepContainer: { alignItems: 'center', paddingVertical: 16 },
+  materialButton: {
+    borderWidth: 1,
+    borderColor: '#AAA',
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginVertical: 6,
+  },
+  materialSelected: {
+    backgroundColor: '#FFD84A',
+    borderColor: '#FFD84A',
   },
 });

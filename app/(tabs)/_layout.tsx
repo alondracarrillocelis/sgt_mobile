@@ -83,7 +83,7 @@ export default function TabLayout() {
             ),
           }}
         />
-        <Tabs.Screen
+        {/* <Tabs.Screen
           name="tasks"
           options={{
             title: 'Tareas',
@@ -93,7 +93,7 @@ export default function TabLayout() {
               </AnimatedIcon>
             ),
           }}
-        />
+        /> */}
 
 
         <Tabs.Screen
