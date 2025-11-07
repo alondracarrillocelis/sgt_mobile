@@ -202,7 +202,7 @@ export default function DashboardScreen() {
         ))}
       </View>
 
-      <View style={styles.section}>
+      {/* <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tareas Pendientes</Text>
         {pendingTasks.map(task => (
           <TouchableOpacity key={task.id} style={styles.card}>
@@ -221,7 +221,7 @@ export default function DashboardScreen() {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </View> */}
     </ScrollView>
   );
 }
